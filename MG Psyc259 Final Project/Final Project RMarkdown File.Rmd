@@ -1,13 +1,282 @@
 ---
-title: "PSYC 259 Final Project"
+title: "Merab Gomez Final Project"
 author: "Merab Gomez"
 date: "3/13/2022"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+   
 ```
 
-## R Markdown
+## Overview
 
+This is the RMarkdown file for my final project. As a reminder, my final project is based on a paper I had to write for the PSYC 211 Statistics course. The paper was based on a study conducted in my lab. This study examined the effectiveness of a 7-day happiness intervention in which participants used a mobile gaming application to play mindset conditioning games called TAPPIT.I looked at how mindfulness levels changed across the 7 timepoints of the intervention.
+
+In this document, I will be running/plotting:
+
+* demographics  
+* descriptive statistics  
+* a repeated measures ANOVA
+* a post-hoc Bonferroni test  
+* results in a box plot
+
+More importantly, I will be detailing the different changes I made to my code that improved my original workflow's **efficiency**, **fidelity** and **reproduciblility**.
+
+## Step 1: Installing Packages
+
+To begin, these are the necessary packages that must be installed and called through the library function.
+
+```{r message=FALSE, warning=FALSE}
+library(rstatix)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+library(ggpubr)
+```
+
+## Step 2: Data Import and Data Preparation
+
+### Importing Dataset ###
+
+Now, the data must be read in the data file. It is in a csv file called TAPPIT_Final_Dataset.csv and has already been de-indentified.
+
+```{r}
+TAPPIT_Final_Dataset <- read.csv("TAPPIT_Final_Dataset.csv")
+```
+
+
+**Side Note:** Lately, I've been getting errors with R Markdown saying it "could not find function read_csv". I've tried trouble shooting this several times and sometimes it works and sometimes it doesn't. To avoid this issue and to play it safe, I've used the read.csv function instead.
+
+### Removing Control Group Rows
+
+As it stands, the TAPPIT_Final_Dataset that we have imported includes data from all participants in both the Experimental ans Control conditions.
+
+For the purpose of my project, I wanted to only focus on participants in the **Experimental group**. These were participants who had played the TAPPIT games using images that depicted happy experiences. The condition.x column depicts which individuals were in each group where 0 = Control and 1 = Experimental.
+
+Below you can see that I used the subset function to create a new dataset called Experimental_Group_Data where all participants who had a 0 in the condition column were excluded. 
+
+```{r}
+Experimental_Group_Data <- subset(TAPPIT_Final_Dataset, Condition.x != "0")
+```
+
+This is an improvement in automation because in my original steps, I removed rows individually using Excel.This reduces the time spend on data preparation and reduces chances of human errors.
+
+
+## Step 3: Participant Demographics
+
+As I mentioned in my workflow critique paper, I did not run any of the demographic information of my sample within R. Instead, I ran this information in Excel.As you know, this problematic because it can be confusing working with multiple statistical platforms. Additionally, any future collaborators would not be able to easily view and access the demographic information by simply looking at my R code.
+
+Below is the new code I created to include the demographic information and in doing so, I have completely converted my project to be fully in R Studio.
+
+Using what I learned in class, I was also able to figure out how to not only get the count information for each of these variables but also get the percentages. This is very useful because I no longer have to worry about calculating these values by hand.
+
+### Age
+Here is my code for getting the mean and standard deviation of Age:
+
+```{r}
+mean(Experimental_Group_Data$Age)
+sd(Experimental_Group_Data$Age)
+
+```
+
+### Race and Ethinicity
+
+Here is the code I used for racial and ethnic breakdown of my sample:
+
+```{r}
+Experimental_Group_Data %>%
+  group_by(Ethnicity) %>%
+  summarise(cnt = n()) %>%
+  mutate(freq = formattable::percent(cnt / sum(cnt))) %>% 
+  arrange(desc(freq))
+```
+
+The output may not make sense here because the groups are represented numerically, however, the new codebook that I've created breaks these groups down.
+
+This is what each value represents:
+1 = Asian American
+2 = Latino American
+3 = White
+4 = Black
+5 = Pacific Islander/Hawaiian
+6 = Other
+
+### Gender
+
+Here is the code I used for the breakdown of my sample by gender:
+
+```{r}
+Experimental_Group_Data %>%
+  group_by(Gender) %>%
+  summarise(cnt = n()) %>%
+  mutate(freq = formattable::percent(cnt / sum(cnt))) %>% 
+  arrange(desc(freq))
+```
+
+Similar to the Race/Ethnicity variable, the values represented in the Gender column are numerically represented.
+
+Using the codebook I've created, we can see what each value represents:
+1 = Male
+2 = Female
+
+### Creating a Function for Count and Percentage Breakdowns
+
+Because I found this first code to be very useful getting counts and percentages of variable columns in my data, I thought it would be good to make this a function.
+
+Below is the code for the function I created and used it to find the counts and percentages of the variables Education and Major.
+
+Although this demographic information is not necessarily relevant to the study, I now have code that will help me automate the process of examining the demographic information of my sample.
+```{r}
+
+```
+
+
+## Step 4: More Data Preparation and Descriptive Statistics
+
+As was described prior, the intervention lasted 7 days. In the case of the analyses, I was only focused on 3 different timepoints in which data on Minduflness levels was collected. These 3 timepoints were on Day 1, Day 3 and Day 7 of the intervention.
+
+### Preping the Mindfulness Variable ###
+
+Before looking and the basic descriptive statistics of Mindfulness levels at different timepoints, there are a few steps that need to be done.
+
+I need to:  
+1. Select columns of interest  
+2. Relabel columns     
+3. Reverse Score Mindfulness measure  
+
+### Selecting Columns of Interest
+
+Using the code below, I have selected all 3 timepoints of interest and added them to a new data file.Separting this data is necessary because I will be transforming these columns but do not wish to permanently do so or to alter any other columns.
+
+```{r}
+df_Mindful_Timepoints <- dplyr::select(Experimental_Group_Data,ID,T1_Mindfulness,T3_Mindfulness,T7_Mindfulness)
+```
+
+### Relabelling Columns
+
+Instead of calling these columns by their original names, it would make my results more interpretable if I renamed them to be Day 1, Day 3, and Day 7.
+
+This was the original code I used to relabel my columns.
+```{r}
+names(df_Mindful_Timepoints)[names(df_Mindful_Timepoints) == "T1_Mindfulness"] <- "Day 1"
+names(df_Mindful_Timepoints)[names(df_Mindful_Timepoints) == "T3_Mindfulness"] <- "Day 3"
+names(df_Mindful_Timepoints)[names(df_Mindful_Timepoints) == "T7_Mindfulness"] <- "Day 7"
+
+```
+
+### Further Automation Using Across Function
+
+Since this step is a bit repetitive, I created this code using the across function to do this same step but in only one line of code.In this case since this is only 3 lines of code, it might have been okay to leave my code as it is. However, I anticipate needing this code for more complex sutdies and it would be really useful to already have it.
+
+```{r}
+
+```
+
+
+### Reverse Scoring Mindfulness 
+
+Now that the labelling is done. I have to reverse score the Mindfulness scores. This is because the original Mindfulness measure results in high scores indicating **less** mindfulness.
+
+Although this step might not be absolutely necessary, intuitively, it would make more sense to reverse the scores to indicate that the higher the score the **more** mindful a participant is.
+
+```{r}
+df_Mindful_Timepoints$`Day 1` <- 5-df_Mindful_Timepoints$`Day 1`
+df_Mindful_Timepoints$`Day 3` <- 5-df_Mindful_Timepoints$`Day 3`
+df_Mindful_Timepoints$`Day 7` <- 5-df_Mindful_Timepoints$`Day 7`
+
+```
+
+### Looking at Distributions
+
+This is my code for looking at the distributions of all 3 timepoints.
+
+```{r}
+hist(df_Mindful_Timepoints$`Day 1`)
+hist(df_Mindful_Timepoints$`Day 3`)
+hist(df_Mindful_Timepoints$`Day 7`)
+```
+
+This quick visual glance at the descriptive data did not indicate any unusual or alarming distribution abnormalities. This would suggest that I can proceed to the next analyses.
+
+## Step 5: Repeated Measures ANOVA
+
+Before conducting the repeated measures ANOVA, I had to pivot my data over to long form. This is because each row must represent a participant and each column represent the timepoints across the intervention in order for the analysis to make sense.
+
+### Pivoting Data
+
+This is the code I used to reformat my code into long form.
+```{r}
+df_Pivot <- pivot_longer(df_Mindful_Timepoints,cols=c("Day 1","Day 3","Day 7"),names_to="Timepoints",values_to="Mindfulness")
+```
+
+### Repeated Measures ANOVA
+
+Now I can run the repeated measures ANOVA to examine how Mindfulness levels changed for participants in the experimental group across the 3 different timepoints of interest.
+
+```{r}
+anova_model <- anova_test(data = df_Pivot, dv = Mindfulness, wid = ID, within = Timepoints)
+get_anova_table(anova_model)
+```
+
+The results of this analysis reveal a significant p-value with and effect size of 0.34.
+
+### Summary of ANOVA Model
+
+To gain a little more information about the ANOVA model, I simply re-ran the model name.
+```{r}
+anova_model
+```
+
+Since the ANOVA model was significant, it is necessary to further investigate which specific time points differed from each other significantly.
+
+## Step 6: Post-Hoc Bonferroni Test
+
+A post-how Bonferroni test was conducted to check which timepoints were singnificantly different from each other.
+
+```{r}
+pwc <- df_Pivot %>%
+  pairwise_t_test(
+    Mindfulness ~ Timepoints, paired = TRUE,
+    p.adjust.method = "bonferroni"
+    )
+pwc
+
+```
+
+Results indicate that from Day 1 to Day 3 there was not a significant change in Mindfulness levels. However, all other comparisons were significantly different with Day 7 having significantly higher levels of Mindfulness compared to Day 1 and Day 3.
+
+## Step 7: Plotting Data
+
+To capture and visually represent the findings of my project, I created a box plot of Mindfulness levels across the 3 different timepoints of the intervention.
+
+### Original Boxplot
+
+This was the original code I used to create the box plots.
+
+```{r}
+boxplot(Mindfulness~Timepoints, data=df_Pivot)
+```
+
+### New Boxplot
+
+As you can see, the box plot is pretty simple and rudimentary. It does not highlight what is important. Based on the tips and recommendations made in lecture, I created this new code to depict the same information. 
+```{r}
+ggplot(df_Pivot, aes(x=Timepoints, y=Mindfulness, fill=Timepoints)) + 
+    geom_boxplot(alpha=1) +
+    theme(legend.position="none") +
+    scale_fill_brewer(palette="Set3")
+```
+
+The new box plot uses color to distinguish all 3 time points and has light gray grid lines in the back. It very clearly looks more appealing than the the first plot.
+
+## Conclusion ##
+
+Although I suspect there is much more I could do to make my code better, this was no doubt an improvement from what I began with. Now I have a completed R Markdown file containing all my code and was able to track my changes using Git Hub. By creating a repository, I can also share this information with other collaborators.
+
+YAY FOR PROGRESS!!! :)
