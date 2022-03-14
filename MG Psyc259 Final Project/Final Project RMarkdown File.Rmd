@@ -51,26 +51,26 @@ TAPPIT_Final_Dataset <- read.csv("TAPPIT_Final_Dataset.csv")
 ```
 
 
-**Side Note:** Lately, I've been getting errors with R Markdown saying it "could not find function read_csv". I've tried trouble shooting this several times and sometimes it works and sometimes it doesn't. To avoid this issue and to play it safe, I've used the read.csv function instead.
+**Side Note:** Lately, I've been getting errors with R Markdown saying it "could not find function read_csv". I've tried trouble shooting this several times and sometimes it works and sometimes it doesn't. To avoid this issue preventing me from completing this assignment and to play it safe, I've used the read.csv function instead.
 
 ### Removing Control Group Rows
 
-As it stands, the TAPPIT_Final_Dataset that we have imported includes data from all participants in both the Experimental ans Control conditions.
+As it stands, the TAPPIT_Final_Dataset that has been imported includes data from all participants in both the Experimental ans Control conditions.
 
 For the purpose of my project, I wanted to only focus on participants in the **Experimental group**. These were participants who had played the TAPPIT games using images that depicted happy experiences. The condition.x column depicts which individuals were in each group where 0 = Control and 1 = Experimental.
 
-Below you can see that I used the subset function to create a new dataset called Experimental_Group_Data where all participants who had a 0 in the condition column were excluded. 
+Below you can see that I used the subset function to create a new data frame called Experimental_Group_Data where all participants who had a 0 in the condition column were excluded. 
 
 ```{r}
 Experimental_Group_Data <- subset(TAPPIT_Final_Dataset, Condition.x != "0")
 ```
 
-This is an improvement in automation because in my original steps, I removed rows individually using Excel.This reduces the time spend on data preparation and reduces chances of human errors.
+This is an improvement in automation because in my original steps, I removed rows individually using Excel.This reduces the time spent on data preparation and reduces risk of human error.
 
 
 ## Step 3: Participant Demographics
 
-As I mentioned in my workflow critique paper, I did not run any of the demographic information of my sample within R. Instead, I ran this information in Excel.As you know, this problematic because it can be confusing working with multiple statistical platforms. Additionally, any future collaborators would not be able to easily view and access the demographic information by simply looking at my R code.
+As I mentioned in my workflow critique paper, I did not run any of the demographic information of my sample within R. Instead, I ran this information in Excel.As you know, this is problematic because it can be confusing working with multiple statistical platforms. Additionally, any future collaborators would not be able to easily view and access the demographic information by simply looking at my R code.
 
 Below is the new code I created to include the demographic information and in doing so, I have completely converted my project to be fully in R Studio.
 
@@ -107,6 +107,8 @@ This is what each value represents:
 5 = Pacific Islander/Hawaiian
 6 = Other
 
+I've uploaded the new codebook to the GitHub repository for my final project in case you might want to verify.
+
 ### Gender
 
 Here is the code I used for the breakdown of my sample by gender:
@@ -127,23 +129,37 @@ Using the codebook I've created, we can see what each value represents:
 
 ### Creating a Function for Count and Percentage Breakdowns
 
-Because I found this first code to be very useful getting counts and percentages of variable columns in my data, I thought it would be good to make this a function.
+Because I found this first code to be very useful in calculating counts and percentages of variable columns in my data, I thought it would be good to make this a function.
 
-Below is the code for the function I created and used it to find the counts and percentages of the variables Education and Major.
+Below is the code for the function I created called demo_breakdown that I used to find the counts and percentages of the variables Education and Major.
 
-Although this demographic information is not necessarily relevant to the study, I now have code that will help me automate the process of examining the demographic information of my sample.
 ```{r}
+demo_breakdown <- function(data_file, column_name){ data_file %>%
+  group_by({{column_name}}) %>%
+  summarise(cnt = n()) %>%
+  mutate(freq = formattable::percent(cnt / sum(cnt))) %>% 
+  arrange(desc(freq))}
 
 ```
 
+### Using new Function
+
+Here is the code where I simply use the function and input the arguments I want to focus on in order to get the demographic information I need.
+
+```{r}
+demo_breakdown(Experimental_Group_Data, Education)
+demo_breakdown(Experimental_Group_Data, Major)
+```
+
+Although Education and Major are not necessarily relevant to the study, I now have code that will help me automate the process of examining the demographic information of my sample.Prior to this class I did not know that it was possible to create our own functions, so this is definitely an improvement.
 
 ## Step 4: More Data Preparation and Descriptive Statistics
 
-As was described prior, the intervention lasted 7 days. In the case of the analyses, I was only focused on 3 different timepoints in which data on Minduflness levels was collected. These 3 timepoints were on Day 1, Day 3 and Day 7 of the intervention.
+As was described prior, the intervention lasted 7 days. In the case of the analyses, I was only focused on 3 different time points in which data on Mindfulness levels was collected. These 3 time points were on Day 1, Day 3 and Day 7 of the intervention.
 
 ### Preping the Mindfulness Variable ###
 
-Before looking and the basic descriptive statistics of Mindfulness levels at different timepoints, there are a few steps that need to be done.
+Before looking and the basic descriptive statistics of Mindfulness levels at different time points, there are a few steps that need to be done.
 
 I need to:  
 1. Select columns of interest  
@@ -152,7 +168,7 @@ I need to:
 
 ### Selecting Columns of Interest
 
-Using the code below, I have selected all 3 timepoints of interest and added them to a new data file.Separting this data is necessary because I will be transforming these columns but do not wish to permanently do so or to alter any other columns.
+Using the code below, I have selected all 3 time points of interest and added them to a new data file.Separating this data is necessary because I will be transforming these columns but do not wish to permanently do so or to alter any other columns.
 
 ```{r}
 df_Mindful_Timepoints <- dplyr::select(Experimental_Group_Data,ID,T1_Mindfulness,T3_Mindfulness,T7_Mindfulness)
@@ -170,18 +186,9 @@ names(df_Mindful_Timepoints)[names(df_Mindful_Timepoints) == "T7_Mindfulness"] <
 
 ```
 
-### Further Automation Using Across Function
-
-Since this step is a bit repetitive, I created this code using the across function to do this same step but in only one line of code.In this case since this is only 3 lines of code, it might have been okay to leave my code as it is. However, I anticipate needing this code for more complex sutdies and it would be really useful to already have it.
-
-```{r}
-
-```
-
-
 ### Reverse Scoring Mindfulness 
 
-Now that the labelling is done. I have to reverse score the Mindfulness scores. This is because the original Mindfulness measure results in high scores indicating **less** mindfulness.
+Now that the labeling is done. I have to reverse score the Mindfulness scores. This is because the original Mindfulness measure results in high scores indicating **less** mindfulness.
 
 Although this step might not be absolutely necessary, intuitively, it would make more sense to reverse the scores to indicate that the higher the score the **more** mindful a participant is.
 
@@ -192,9 +199,22 @@ df_Mindful_Timepoints$`Day 7` <- 5-df_Mindful_Timepoints$`Day 7`
 
 ```
 
+### Implementing Across Function
+
+As a requirement for this project, I needed to use one the automation functions listed (i.e., map, for loop, across and read_csv). It was difficult figuring out where I should incorporate this since most of my code is relatively simple.
+
+I decided to use the across function to summarize the mindfulness means of all 3 time points all at once, as you can see in the code below.
+
+```{r}
+distributions <- df_Mindful_Timepoints %>% summarise(across(2:4, mean))
+distributions
+```
+
+I wouldn't say this line of code was extremely useful in this case, but I know I should at least be familiar with the across function. I am almost certain there was probably a better way of implementing it in a more useful way but it did the job here.
+
 ### Looking at Distributions
 
-This is my code for looking at the distributions of all 3 timepoints.
+This is my code for looking at the distributions using histograms of all 3 time points.
 
 ```{r}
 hist(df_Mindful_Timepoints$`Day 1`)
@@ -202,11 +222,11 @@ hist(df_Mindful_Timepoints$`Day 3`)
 hist(df_Mindful_Timepoints$`Day 7`)
 ```
 
-This quick visual glance at the descriptive data did not indicate any unusual or alarming distribution abnormalities. This would suggest that I can proceed to the next analyses.
+I did not need to make these plots more visually appealing here because all I really wanted to make sure I was not violating normality assumptions. This quick visual glance at the descriptive data did not indicate any unusual or alarming distribution abnormalities. This would suggest that I can proceed to the next analyses.
 
 ## Step 5: Repeated Measures ANOVA
 
-Before conducting the repeated measures ANOVA, I had to pivot my data over to long form. This is because each row must represent a participant and each column represent the timepoints across the intervention in order for the analysis to make sense.
+Before conducting the repeated measures ANOVA, I had to pivot my data over to long form. This is because each row must represent a participant and each column represent the time points across the intervention in order for the analysis to make sense.
 
 ### Pivoting Data
 
