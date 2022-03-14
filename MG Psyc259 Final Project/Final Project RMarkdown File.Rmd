@@ -1,0 +1,13 @@
+---
+title: "PSYC 259 Final Project"
+author: "Merab Gomez"
+date: "3/13/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
